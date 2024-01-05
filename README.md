@@ -7,3 +7,7 @@ It provides some functionality, such as:
 - Better console rendering
 - Easily changing font
 - And some other things too!
+
+## Download
+
+[NuGet package](https://www.nuget.org/packages/UltraConsole/1.0.0)
