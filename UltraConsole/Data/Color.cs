@@ -5,13 +5,48 @@
 /// </summary>
 public struct Color : IEquatable<Color>
 {
+    /// <summary>
+    /// Initializes new <c>Color</c> from byte channels
+    /// </summary>
     public Color(byte r, byte g, byte b)
     {
         (this.r, this.g, this.b) = (r, g, b);
     }
+    /// <summary>
+    /// Initializes new <c>Color</c> from normalized channels (0-1)
+    /// </summary>
+    public Color(float r, float g, float b)
+    {
+        this.r = (byte)(Math.Clamp(r, 0f, 1f) * byte.MaxValue);
+        this.g = (byte)(Math.Clamp(g, 0f, 1f) * byte.MaxValue);
+        this.b = (byte)(Math.Clamp(b, 0f, 1f) * byte.MaxValue);
+    }
     public Color() : this(0, 0, 0) { }
 
     public byte r, g, b;
+    /// <summary>
+    /// Represents color channels normalized to floats between 0-1
+    /// </summary>
+    public (float r, float g, float b) Normal
+    {
+        get => (
+            r / (float)byte.MaxValue,
+            g / (float)byte.MaxValue,
+            b / (float)byte.MaxValue);
+        set
+        {
+            try
+            {
+                r = checked((byte)(value.r * byte.MaxValue));
+                g = checked((byte)(value.g * byte.MaxValue));
+                b = checked((byte)(value.b * byte.MaxValue));
+            }
+            catch (OverflowException e)
+            {
+                throw new OverflowException("Normalized color channels are out of 0-1 range", e);
+            }
+        }
+    }
 
     private static readonly Dictionary<ConsoleColor, Color> ConsoleColors = new()
     {
@@ -34,6 +69,39 @@ public struct Color : IEquatable<Color>
     };
     public static Color FromConsoleColor(ConsoleColor color)
         => ConsoleColors[color];
+
+    /// <summary>
+    /// Creates gradient
+    /// </summary>
+    /// <param name="from">First color of gradient</param>
+    /// <param name="to">Last color of gradient</param>
+    /// <param name="size">Size of gradient</param>
+    public static Color[] Gradient(Color from, Color to, int size)
+    {
+        if (size <= 0)
+            throw new ArgumentOutOfRangeException(nameof(size), "Size should be at least 1");
+
+        Color[] gradient = new Color[size];
+
+        (float[] r, float[] g, float[] b) arrays = (
+            LinearArray(from.Normal.r, to.Normal.r, size),
+            LinearArray(from.Normal.g, to.Normal.g, size),
+            LinearArray(from.Normal.b, to.Normal.b, size));
+
+        for (int i = 0; i < size; i++)
+        {
+            gradient[i] = new(arrays.r[i], arrays.g[i], arrays.b[i]);
+        }
+
+        return gradient;
+    }
+    private static float[] LinearArray(float from, float to, int size)
+    {
+        float step = (to - from) / (size - 1f);
+        return Enumerable.Range(0, size)
+            .Select(i => from + i * step)
+            .ToArray();
+    }
 
     public override string ToString()
         => $"({r}, {g}, {b})";
@@ -76,15 +144,29 @@ public struct Color : IEquatable<Color>
         => !(left == right);
 
     public static Color operator +(Color left, Color right)
-        => new(
+    {
+        return new(
             Add(left.r, right.r),
             Add(left.g, right.g),
             Add(left.b, right.b));
+    }
     public static Color operator -(Color left, Color right)
-        => new(
+    {
+        return new(
             Sub(left.r, right.r),
             Sub(left.g, right.g),
             Sub(left.b, right.b));
+    }
+    public static Color operator *(Color left, Color right)
+    {
+        return new(
+            left.Normal.r * right.Normal.r,
+            left.Normal.g * right.Normal.g,
+            left.Normal.b * right.Normal.b);
+    }
+
+    public static implicit operator Color(ConsoleColor consoleColor)
+        => FromConsoleColor(consoleColor);
 
     public static explicit operator string(Color color)
         => color.ToString();

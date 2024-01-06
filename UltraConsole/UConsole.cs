@@ -1,10 +1,10 @@
-﻿using UltraConsole.Special;
-using UltraConsole.Data;
+﻿using UltraConsole.Data;
 using UltraConsole.ANSI;
 
 using Encoding = System.Text.Encoding;
 using SysConsole = System.Console;
 using Seq = UltraConsole.ANSI.EscapeSequence;
+using Low = UltraConsole.Special.LowLevel;
 
 namespace UltraConsole;
 
@@ -15,6 +15,12 @@ public static class UConsole
 {
     public static TextWriter Out => SysConsole.Out;
     public static TextReader In => SysConsole.In;
+
+    public static string Title
+    {
+        get => SysConsole.Title;
+        set => SysConsole.Title = value;
+    }
 
     public static class Graphics
     {
@@ -79,7 +85,7 @@ public static class UConsole
             set
             {
                 font = value;
-                LowLevel.SetFont(font, fontSize);
+                Low.SetFont(font, fontSize);
             }
         }
         private static short fontSize;
@@ -89,7 +95,17 @@ public static class UConsole
             set
             {
                 fontSize = value;
-                LowLevel.SetFont(font, fontSize);
+                Low.SetFont(font, fontSize);
+            }
+        }
+
+        public static Coords WindowSize
+        {
+            get => new(SysConsole.WindowWidth, SysConsole.WindowHeight);
+            set
+            {
+                SysConsole.SetWindowSize(value.x, value.y);
+                SysConsole.SetBufferSize(value.x, value.y);
             }
         }
     }
@@ -141,8 +157,8 @@ public static class UConsole
         if (fontSize != null) Graphics.DefaultFontSize = (short)fontSize;
 
         SetFont(Graphics.DefaultFont, Graphics.DefaultFontSize);
-        if (size != null) SetWindowSize((Coords)size);
-        LowLevel.LockWindowSize();
+        if (size != null) Graphics.WindowSize = (Coords)size;
+        Low.LockWindowSize();
 
         SysConsole.InputEncoding = inEncoding ?? Encoding.UTF8;
         SysConsole.OutputEncoding = outEncoding ?? Encoding.Unicode;
@@ -152,11 +168,6 @@ public static class UConsole
         Graphics.ForegroundColor = Graphics.DefaultFG;
         Graphics.BackgroundColor = Graphics.DefaultBG;
     }
-    private static void SetWindowSize(Coords size)
-    {
-        SysConsole.SetWindowSize(size.x, size.y);
-        SysConsole.SetBufferSize(size.x, size.y);
-    }
 
     /// <summary>
     /// Sets the font, able to proccess both TrueType and Vector
@@ -165,9 +176,9 @@ public static class UConsole
     public static void SetFont(Font font, short? size = null)
     {
         if (font.IsVector)
-            LowLevel.SetVectorFont((short)font.width!, (short)font.height!);
+            Low.SetVectorFont((short)font.width!, (short)font.height!);
         else
-            LowLevel.SetFont(font, size ?? Graphics.DefaultFontSize);
+            Low.SetFont(font, size ?? Graphics.DefaultFontSize);
     }
 
     public static void Write(string? value)
@@ -266,6 +277,81 @@ public static class UConsole
             Cursor.Pos = pos;
         }
     }
+    /// <summary>
+    /// Writes text at position
+    /// </summary>
+    public static void WriteAt(FormatString value, Coords pos)
+    {
+        Cursor.Pos = pos;
+        Write(value);
+    }
+    /// <summary>
+    /// Writes text at position
+    /// </summary>
+    /// <param name="returnCursor"><c>true</c> to return cursor to it's starting position</param>
+    public static void WriteAt(FormatString value, Coords pos, bool returnCursor)
+    {
+        if (returnCursor)
+        {
+            Coords revertPos = Cursor.Pos;
+            WriteAt(value, pos);
+            Cursor.Pos = revertPos;
+        }
+        else
+        {
+            WriteAt(value, pos);
+            Cursor.Pos = pos;
+        }
+    }
+    /// <summary>
+    /// Writes text at position
+    /// </summary>
+    public static void WriteAt(string value, Coords pos, GraphicEffect graphic)
+    {
+        Cursor.Pos = pos;
+        Write(value, graphic);
+    }
+
+    /// <summary>
+    /// Returns a part of console buffer
+    /// </summary>
+    /// <param name="pos">Reading starting position</param>
+    /// <param name="size">Size of part being read</param>
+    public static IEnumerable<string> ReadBuffer(Coords pos, Coords size)
+    {
+        checked
+        {
+            return Low.ReadFromBuffer(
+            (short)pos.x, (short)pos.y,
+            (short)size.x, (short)size.y);
+        }
+    }
+    public static string ReadBufferLine(Coords pos, int length)
+        => ReadBuffer(pos, (length, 1)).First();
+    public static char ReadBufferChar(Coords pos)
+        => ReadBufferLine(pos, 1)[0];
+
+    /// <summary>
+    /// Overrides <c>GraphicEffect</c> at <c>pos</c> without changing text
+    /// </summary>
+    public static void GraphicOverride(GraphicEffect graphic, Coords pos)
+    {
+        WriteAt(ReadBufferChar(pos).ToString(), pos, graphic);
+    }
+    /// <summary>
+    /// Overrides color at <c>pos</c> without changing text
+    /// </summary>
+    public static void ColorOverride(Color color, Coords pos)
+        => GraphicOverride(new(color), pos);
+    /// <summary>
+    /// Overrides color at <c>pos</c> without changing text
+    /// </summary>
+    /// <param name="foreground"><c>true</c> for FG color, otherwise <c>false</c></param>
+    public static void ColorOverride(Color color, Coords pos, bool foreground)
+        => GraphicOverride(new(
+            foreground ? color : null,
+            !foreground ? color : null),
+            pos);
 
     public static string? ReadLine()
     {

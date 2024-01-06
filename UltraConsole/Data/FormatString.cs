@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Drawing;
 using UltraConsole.ANSI;
 
 namespace UltraConsole.Data;
@@ -46,6 +47,14 @@ public readonly struct FormatString : IEquatable<FormatString>, IEnumerable<(cha
         return BaseCreate(text, (GraphicEffect?[] colorArray)
             => colorArray[0] = new(color));
     }
+    /// <param name="foreground"><c>true</c> for FG color, otherwise <c>false</c></param>
+    public static FormatString Create(string text, Color? color, bool foreground)
+    {
+        return BaseCreate(text, (GraphicEffect?[] colorArray)
+            => colorArray[0] = new(
+                foreground ? color : null,
+                !foreground ? color : null));
+    }
     public static FormatString Create(string text, GraphicsMode? effect)
     {
         return BaseCreate(text, (GraphicEffect?[] colorArray)
@@ -66,6 +75,17 @@ public readonly struct FormatString : IEquatable<FormatString>, IEnumerable<(cha
         {
             for (int i = 0; i < colors.Length && i < colorArray.Length; i++)
                 colorArray[i] = new(colors[i]);
+        });
+    }
+    /// <param name="foreground"><c>true</c> for FG color, otherwise <c>false</c></param>
+    public static FormatString Create(string text, Color?[] colors, bool foreground)
+    {
+        return BaseCreate(text, (GraphicEffect?[] colorArray) =>
+        {
+            for (int i = 0; i < colors.Length && i < colorArray.Length; i++)
+                colorArray[i] = new(
+                    foreground ? colors[i] : null,
+                    !foreground ? colors[i] : null);
         });
     }
     public static FormatString Create(string text, GraphicsMode?[] effect)

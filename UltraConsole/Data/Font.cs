@@ -3,7 +3,7 @@
 /// <summary>
 /// Represents either TrueType sizeless font OR Vector font with size
 /// </summary>
-public readonly struct Font
+public readonly struct Font : IEquatable<Font>
 {
     private Font(string name)
     {
@@ -111,6 +111,31 @@ public readonly struct Font
 
     public static Font Vector(short width, short height)
         => new(width, height);
+
+    public override string ToString()
+        => name;
+
+    public override bool Equals(object? obj)
+        => obj is Font font && Equals(font);
+    public bool Equals(Font other)
+    {
+        if (IsVector != other.IsVector) return false;
+
+        return IsVector
+            ? width == other.width && height == other.height
+            : name == other.name;
+    }
+    public override int GetHashCode()
+    {
+        return IsVector
+            ? HashCode.Combine(VectorFontName, width, height, IsVector)
+            : HashCode.Combine(name, (short?)-1, (short?)-1, IsVector);
+    }
+
+    public static bool operator ==(Font left, Font right)
+        => left.Equals(right);
+    public static bool operator !=(Font left, Font right)
+        => !(left == right);
 
     public static implicit operator string(Font font)
         => font.name;

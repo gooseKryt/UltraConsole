@@ -20,12 +20,12 @@ public static class EscapeSequence
     public const string ResetColor = "\u001b[0;39;49m";
     public const string ResetEffects = "\u001b[0;0;0m";
 
-    public static string GraphicsMode(GraphicEffect? colorPair)
+    public static string GraphicsMode(GraphicEffect? graphic)
     {
-        return colorPair == null
+        return graphic == null
             ? ""
-            : ColorMode(colorPair.Value.foreground, colorPair.Value.background)
-            + GraphicsMode(colorPair.Value.effect);
+            : ColorMode(graphic.Value.foreground, graphic.Value.background)
+            + GraphicsMode(graphic.Value.effect);
     }
 
     public static string ColorMode(Color? foreground = null, Color? background = null)

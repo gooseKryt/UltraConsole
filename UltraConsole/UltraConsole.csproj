@@ -10,6 +10,7 @@
     <PackageIcon>UltraConsole icon.png</PackageIcon>
     <PackAsTool>False</PackAsTool>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Version>1.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
