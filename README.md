@@ -14,4 +14,4 @@ It provides some functionality, such as:
 
 ## Download
 
-[NuGet package](https://www.nuget.org/packages/UltraConsole/1.0.0)
+[NuGet package](https://www.nuget.org/packages/UltraConsole/)
