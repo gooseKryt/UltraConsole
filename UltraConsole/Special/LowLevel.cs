@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -11,14 +12,21 @@ namespace UltraConsole.Special;
 /// </summary>
 public static class LowLevel
 {
+    private const int STD_OUTPUT_HANDLE = -11;
+
     private const int MF_BYCOMMAND = 0x00000000;
     private const int SC_MINIMIZE = 0xF020;
     private const int SC_MAXIMIZE = 0xF030;
     private const int SC_SIZE = 0xF000;
 
-    private const int STD_OUTPUT_HANDLE = -11;
     private const int TMPF_TRUETYPE = 4;
     private const int TMPF_VECTOR = 0;
+
+    private static readonly IntPtr hConsoleOutput
+        = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr GetStdHandle(int nStdHandle);
 
     [DllImport("user32.dll")]
     private static extern IntPtr GetSystemMenu(IntPtr hWnd, bool bRevert);
@@ -30,9 +38,6 @@ public static class LowLevel
     private static extern int DeleteMenu(IntPtr hMenu, int nPosition, int wFlags);
 
     [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern IntPtr GetStdHandle(int nStdHandle);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool GetConsoleFontInfo(IntPtr hConsoleOutput, bool bMaximumWindow, uint dwFontCount, [Out] CONSOLE_FONT_INFO[] lpConsoleFontInfo);
 
     [DllImport("kernel32.dll", SetLastError = true)]
@@ -40,6 +45,9 @@ public static class LowLevel
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool ReadConsoleOutput(IntPtr hConsoleOutput, IntPtr lpBuffer, COORD dwBufferSize, COORD dwBufferCoord, ref SMALL_RECT lpReadRegion);
+
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern bool WriteConsoleOutputCharacter(IntPtr hConsoleOutput, string lpCharacter, uint nLength, COORD dwWriteCoord, out uint lpNumberOfCharsWritten);
 
 
     [StructLayout(LayoutKind.Sequential)]
@@ -138,8 +146,6 @@ public static class LowLevel
     }
     private static bool SetFontBase(CONSOLE_FONT_INFO_EX newFont)
     {
-        IntPtr hConsoleOutput = GetStdHandle(STD_OUTPUT_HANDLE);
-
         CONSOLE_FONT_INFO[] consoleFontInfo = new CONSOLE_FONT_INFO[1];
         GetConsoleFontInfo(hConsoleOutput, false, 1, consoleFontInfo);
 
@@ -170,7 +176,7 @@ public static class LowLevel
                 Y = height
             };
 
-            if (!ReadConsoleOutput(GetStdHandle(STD_OUTPUT_HANDLE), buffer, size, coord, ref rc))
+            if (!ReadConsoleOutput(hConsoleOutput, buffer, size, coord, ref rc))
             {
                 // 'Not enough storage is available to process this command' may be raised for buffer size > 64K (see ReadConsoleOutput doc.)
                 throw new Win32Exception(Marshal.GetLastWin32Error());
@@ -196,4 +202,27 @@ public static class LowLevel
         }
     }
 #pragma warning restore
+
+    public static uint WriteToBuffer(string str, short x, short y)
+    {
+        WriteConsoleOutputCharacter(
+            hConsoleOutput,
+            str,
+            (uint)str.Length,
+            new COORD { X = x, Y = y },
+            out uint charsWritten);
+
+        return charsWritten;
+    }
+    public static uint WriteToBuffer(char c, short x, short y)
+    {
+        WriteConsoleOutputCharacter(
+            hConsoleOutput,
+            c.ToString(),
+            1,
+            new COORD { X = x, Y = y },
+            out uint charsWritten);
+
+        return charsWritten;
+    }
 }

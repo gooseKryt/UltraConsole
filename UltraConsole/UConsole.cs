@@ -246,6 +246,7 @@ public static class UConsole
     /// <summary>
     /// Writes character at position
     /// </summary>
+    [Obsolete($"To quickly write use {nameof(WriteBuffer)} instead")]
     public static void WriteAt(char value, Coords pos)
     {
         Cursor.Pos = pos;
@@ -254,6 +255,7 @@ public static class UConsole
     /// <summary>
     /// Writes text at position
     /// </summary>
+    [Obsolete($"To quickly write use {nameof(WriteBuffer)} instead")]
     public static void WriteAt(string value, Coords pos)
     {
         Cursor.Pos = pos;
@@ -263,6 +265,7 @@ public static class UConsole
     /// Writes text at position
     /// </summary>
     /// <param name="returnCursor"><c>true</c> to return cursor to it's starting position</param>
+    [Obsolete($"To quickly write use {nameof(WriteBuffer)} instead")]
     public static void WriteAt(string value, Coords pos, bool returnCursor)
     {
         if (returnCursor)
@@ -313,7 +316,28 @@ public static class UConsole
     }
 
     /// <summary>
-    /// Returns a part of console buffer
+    /// Writes directly to buffer
+    /// </summary>
+    public static void WriteBuffer(string value, Coords pos)
+    {
+        checked
+        {
+            Low.WriteToBuffer(value, (short)pos.x, (short)pos.y);
+        }
+    }
+    /// <summary>
+    /// Writes directly to buffer
+    /// </summary>
+    public static void WriteBuffer(char value, Coords pos)
+    {
+        checked
+        {
+            Low.WriteToBuffer(value, (short)pos.x, (short)pos.y);
+        }
+    }
+
+    /// <summary>
+    /// Reads a part of console buffer
     /// </summary>
     /// <param name="pos">Reading starting position</param>
     /// <param name="size">Size of part being read</param>
