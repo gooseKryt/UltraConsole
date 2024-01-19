@@ -128,6 +128,11 @@ public static class UConsole
             get => SysConsole.CursorVisible;
             set => SysConsole.CursorVisible = value;
         }
+
+        public static void Reset()
+        {
+            Pos = (0, 0);
+        }
     }
 
     /// <summary>
